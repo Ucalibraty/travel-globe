@@ -2,62 +2,88 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Travel Globe</title>
 <style>
   :root {
-    --sea: #07131f;
-    --ink: #e9f1f5;
-    --muted: #8fa6b4;
-    --panel: rgba(9, 24, 37, 0.82);
-    --line: rgba(143, 166, 180, 0.25);
-    --visited: #ffb23e;
-    --land: #1d4a5c;
-    --hover: #3fb6a8;
+    --sea: #07131f; --ink: #e9f1f5; --muted: #8fa6b4;
+    --panel: rgba(9, 24, 37, 0.9); --line: rgba(143, 166, 180, 0.25);
+    --visited: #ffb23e; --hover: #3fb6a8; --danger: #ff7a6b;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--sea); color: var(--ink);
     font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  button, input, textarea { font: inherit; color: inherit; }
   #globe { position: fixed; inset: 0; }
+  .panel { background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 14px; }
 
-  .panel { position: fixed; background: var(--panel); backdrop-filter: blur(8px);
-    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
-  #stats { top: 16px; left: 16px; width: 280px; }
-  #stats h1 { margin: 0 0 2px; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
-  #stats .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
-  .big { font-size: 44px; line-height: 1; font-weight: 700; color: var(--visited); }
-  .big small { font-size: 15px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+  /* Ricerca */
+  #search { position: fixed; top: 16px; left: 16px; width: 320px; z-index: 4; }
+  #search form { display: flex; gap: 6px; padding: 6px; }
+  #search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; padding: 8px 10px; font-size: 16px; }
+  #search input::placeholder { color: var(--muted); }
+  .btn { background: var(--visited); color: #2a1a00; border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  #results { list-style: none; margin: 6px 0 0; padding: 4px; display: none; max-height: 45vh; overflow-y: auto; }
+  #results.show { display: block; }
+  #results li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 10px; border-radius: 8px; cursor: pointer; }
+  #results li button:hover, #results li button:focus-visible { background: rgba(255,255,255,.08); outline: 0; }
+  #results .t { font-size: 14px; font-weight: 600; }
+  #results .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #results .msg { padding: 10px; font-size: 13px; color: var(--muted); }
+
+  /* Pannello laterale / bottom sheet */
+  #side { position: fixed; top: 76px; left: 16px; bottom: 16px; width: 320px; display: flex; flex-direction: column; z-index: 3; overflow: hidden; }
+  #sideHead { padding: 14px 16px; cursor: default; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  #sideHead h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  #sideHead .mini { color: var(--muted); font-size: 13px; }
+  #chev { display: none; color: var(--muted); transition: transform .2s; }
+  #sideBody { padding: 0 16px 14px; overflow-y: auto; flex: 1; }
+  .big { font-size: 40px; line-height: 1; font-weight: 700; color: var(--visited); }
+  .big small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 6px; }
   .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); margin: 12px 0 6px; overflow: hidden; }
   .bar > i { display: block; height: 100%; width: 0; background: var(--visited); transition: width .5s ease; }
   .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
-  .row b { color: var(--ink); font-weight: 600; }
-
-  #badges { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .badge { font-size: 12px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line);
-    color: var(--muted); transition: all .3s; }
+  .row b { color: var(--ink); }
+  #badges { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 12px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
   .badge.on { color: #2a1a00; background: var(--visited); border-color: var(--visited); font-weight: 600; }
+  h2 { font-size: 14px; margin: 18px 0 6px; }
+  #empty { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.5; }
+  #list { list-style: none; margin: 0; padding: 0; }
+  #list li button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 9px 2px; cursor: pointer; }
+  #list li button:hover, #list li button:focus-visible { background: rgba(255,255,255,.05); outline: 0; }
+  #list .t { font-size: 14px; font-weight: 600; }
+  #list .s { font-size: 12px; color: var(--muted); }
+  .credit { font-size: 11px; color: var(--muted); margin-top: 14px; }
 
-  #info { bottom: 16px; left: 50%; transform: translateX(-50%); padding: 10px 16px; font-size: 14px;
-    text-align: center; max-width: calc(100vw - 32px); }
-  #info b { color: var(--visited); }
-  #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -80px); background: var(--visited);
-    color: #2a1a00; font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: transform .35s ease;
-    max-width: calc(100vw - 32px); text-align: center; z-index: 5; }
+  /* Form luogo */
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  #overlay.show { display: flex; }
+  #card { width: 100%; max-width: 400px; padding: 18px; max-height: 92vh; overflow-y: auto; }
+  #card h3 { margin: 0 0 4px; font-size: 17px; }
+  #card .where { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .field { width: 100%; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 16px; outline: 0; color-scheme: dark; }
+  .field:focus { border-color: var(--visited); }
+  textarea.field { min-height: 90px; resize: vertical; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .actions .btn { flex: 1; }
+
+  #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -120px); background: var(--visited); color: #2a1a00;
+    font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: transform .35s ease; max-width: calc(100vw - 32px); text-align: center; z-index: 20; }
   #toast.show { transform: translate(-50%, 0); }
 
-  #list { top: 16px; right: 16px; width: 220px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
-  #list h2 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
-  #list ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; font-size: 13px; }
-  #list li { padding: 6px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
-  #list li button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
-  #list li button:hover, #list li button:focus-visible { color: var(--ink); outline: 1px solid var(--muted); }
-  #empty { color: var(--muted); font-size: 13px; margin: 0; }
-
   @media (max-width: 720px) {
-    #list { display: none; }
-    #stats { width: calc(100vw - 32px); padding: 12px 14px; }
-    .big { font-size: 34px; }
-    #badges { margin-top: 10px; }
+    #search { top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: 10px; width: auto; }
+    #side { top: auto; left: 0; right: 0; bottom: 0; width: auto; border-radius: 16px 16px 0 0; max-height: 70px; transition: max-height .3s ease; padding-bottom: env(safe-area-inset-bottom); }
+    #side.open { max-height: 62vh; }
+    #sideHead { cursor: pointer; }
+    #chev { display: block; }
+    #side.open #chev { transform: rotate(180deg); }
+    .big { font-size: 32px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -65,142 +91,285 @@
 <body>
 <div id="globe"></div>
 
-<div id="stats" class="panel">
-  <h1>Il mio mondo</h1>
-  <p class="sub">Tocca un paese per segnarlo come visitato.</p>
-  <div class="big"><span id="count">0</span><small>paesi visitati</small></div>
-  <div class="bar"><i id="fill"></i></div>
-  <div class="row"><span>Mondo esplorato <b id="pct">0%</b></span><span>Continenti <b id="cont">0/6</b></span></div>
-  <div id="badges"></div>
+<div id="search">
+  <div class="panel">
+    <form id="searchForm" autocomplete="off">
+      <input id="q" type="search" placeholder="Cerca un luogo (es. Lisbona)" aria-label="Cerca un luogo">
+      <button class="btn" id="go" type="submit">Cerca</button>
+    </form>
+  </div>
+  <ul id="results" class="panel"></ul>
 </div>
 
-<div id="list" class="panel">
-  <h2>Paesi visitati</h2>
-  <p id="empty">Ancora nessun paese. Da dove parti?</p>
-  <ul id="ul"></ul>
-</div>
+<aside id="side" class="panel">
+  <div id="sideHead">
+    <div>
+      <h1>Il mio mondo</h1>
+      <div class="mini" id="mini">0 luoghi · 0 paesi</div>
+    </div>
+    <span id="chev">▲</span>
+  </div>
+  <div id="sideBody">
+    <div class="big"><span id="nPlaces">0</span><small>luoghi visitati</small></div>
+    <div class="bar"><i id="fill"></i></div>
+    <div class="row"><span>Paesi <b id="nCountries">0</b></span><span>Mondo esplorato <b id="pct">0%</b></span><span>Continenti <b id="cont">0/6</b></span></div>
+    <div id="badges"></div>
+    <h2>I miei ricordi</h2>
+    <p id="empty">Cerca un luogo in alto, oppure tocca un paese sul globo, per aggiungere il tuo primo ricordo.</p>
+    <ul id="list"></ul>
+    <p class="credit">Ricerca luoghi: dati © contributori di OpenStreetMap (Nominatim).</p>
+  </div>
+</aside>
 
-<div id="info" class="panel">Trascina per ruotare, scorri per zoomare.</div>
+<div id="overlay">
+  <div id="card" class="panel" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
+    <h3 id="cardTitle">Nuovo ricordo</h3>
+    <p class="where" id="where"></p>
+    <label for="fName">Nome del luogo</label>
+    <input id="fName" class="field" type="text" maxlength="80">
+    <label for="fDate">Quando ci sei stato</label>
+    <input id="fDate" class="field" type="date">
+    <label for="fNote">Nota</label>
+    <textarea id="fNote" class="field" maxlength="500" placeholder="Cosa vuoi ricordare di questo posto?"></textarea>
+    <div class="actions">
+      <button class="btn" id="bSave" type="button">Salva</button>
+      <button class="btn ghost" id="bCancel" type="button">Annulla</button>
+      <button class="btn danger" id="bDelete" type="button" style="display:none">Elimina</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
-// Caricamento libreria con fallback
 function loadScript(src) {
-  return new Promise((ok, ko) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = ok; s.onerror = ko;
-    document.head.appendChild(s);
-  });
+  return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
 }
 loadScript('https://cdnjs.cloudflare.com/ajax/libs/globe.gl/2.33.1/globe.gl.min.js')
   .catch(() => loadScript('https://cdn.jsdelivr.net/npm/globe.gl'))
   .then(start)
-  .catch(() => { document.getElementById('info').textContent = 'Impossibile caricare Globe.GL. Controlla la connessione.'; });
+  .catch(() => toast('Impossibile caricare il globo. Controlla la connessione.'));
 
 const GEO_URL = 'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson';
 const TEXTURE = 'https://unpkg.com/three-globe/example/img/earth-night.jpg';
 const BUMP = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
+const WORLD_COUNTRIES = 195;
+const KEY = 'travel-globe:pins';
 
-// Persistenza: localStorage se disponibile, altrimenti memoria
-const KEY = 'travel-globe:visited';
 let memory = [];
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return memory; } }
 function save(arr) { memory = arr; try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {} }
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+}
 
 const BADGES = [
-  { id: 'b1',  label: 'Primo passo',        test: s => s.n >= 1 },
-  { id: 'b5',  label: '5 paesi',            test: s => s.n >= 5 },
-  { id: 'b10', label: '10 paesi',           test: s => s.n >= 10 },
-  { id: 'b25', label: '25 paesi',           test: s => s.n >= 25 },
-  { id: 'bc3', label: '3 continenti',       test: s => s.c >= 3 },
-  { id: 'bc6', label: 'Giro del mondo',     test: s => s.c >= 6 },
+  { label: 'Primo ricordo',  test: s => s.places >= 1 },
+  { label: '5 luoghi',       test: s => s.places >= 5 },
+  { label: '10 luoghi',      test: s => s.places >= 10 },
+  { label: '3 paesi',        test: s => s.countries >= 3 },
+  { label: '10 paesi',       test: s => s.countries >= 10 },
+  { label: '3 continenti',   test: s => s.conts >= 3 },
+  { label: 'Giro del mondo', test: s => s.conts >= 6 },
 ];
 
-function start() {
-  const iso = f => f.properties.ISO_A3 !== '-99' ? f.properties.ISO_A3 : f.properties.ADM0_A3;
-  const name = f => f.properties.NAME_IT || f.properties.NAME || f.properties.ADMIN;
-  let visited = new Set(load());
-  let hover = null;
-  let countries = [];
+// Geometria: il punto è dentro il poligono?
+function inRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function inPoly(x, y, rings) {
+  if (!inRing(x, y, rings[0])) return false;
+  for (let k = 1; k < rings.length; k++) if (inRing(x, y, rings[k])) return false;
+  return true;
+}
 
-  const globe = Globe()(document.getElementById('globe'))
-    .globeImageUrl(TEXTURE)
-    .bumpImageUrl(BUMP)
-    .backgroundColor('#07131f')
-    .atmosphereColor('#6ec6d8')
-    .atmosphereAltitude(0.18)
-    .polygonCapColor(f => visited.has(iso(f)) ? 'rgba(255,178,62,0.85)'
-                       : f === hover ? 'rgba(63,182,168,0.6)' : 'rgba(29,74,92,0.35)')
-    .polygonSideColor(() => 'rgba(255,255,255,0.05)')
+function start() {
+  const key = f => f.properties.ADM0_A3;
+  const cname = f => f.properties.NAME_IT || f.properties.NAME || f.properties.ADMIN;
+  let pins = load();
+  let countries = [], byKey = {};
+  let hover = null, visitedKeys = new Set(), editing = null;
+
+  const globe = Globe()($('globe'))
+    .globeImageUrl(TEXTURE).bumpImageUrl(BUMP)
+    .backgroundColor('#07131f').atmosphereColor('#6ec6d8').atmosphereAltitude(0.18)
+    .polygonCapColor(f => visitedKeys.has(key(f)) ? 'rgba(255,178,62,0.45)' : f === hover ? 'rgba(63,182,168,0.55)' : 'rgba(29,74,92,0.3)')
+    .polygonSideColor(() => 'rgba(255,255,255,0.04)')
     .polygonStrokeColor(() => 'rgba(160,200,215,0.35)')
-    .polygonAltitude(f => visited.has(iso(f)) ? 0.03 : f === hover ? 0.02 : 0.006)
-    .polygonLabel(f => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui">
-        <b>${name(f)}</b><br><span style="color:#8fa6b4">${visited.has(iso(f)) ? 'Visitato' : 'Tocca per segnare'}</span></div>`)
-    .onPolygonHover(f => { hover = f; refresh(); document.body.style.cursor = f ? 'pointer' : 'default'; })
-    .onPolygonClick(f => toggle(f))
-    .polygonsTransitionDuration(250);
+    .polygonAltitude(f => visitedKeys.has(key(f)) ? 0.012 : f === hover ? 0.012 : 0.005)
+    .polygonLabel(f => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui"><b>${esc(cname(f))}</b><br><span style="color:#8fa6b4">Tocca per aggiungere un ricordo</span></div>`)
+    .onPolygonHover(f => { hover = f; refreshPolygons(); document.body.style.cursor = f ? 'pointer' : 'default'; })
+    .onPolygonClick((f, ev, c) => { if (c) addFromTap(f, c.lat, c.lng); })
+    .polygonsTransitionDuration(250)
+    .pointsData(pins).pointLat('lat').pointLng('lng')
+    .pointColor(() => '#ffb23e').pointAltitude(0.05).pointRadius(0.4)
+    .pointLabel(p => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui"><b>${esc(p.name)}</b><br><span style="color:#8fa6b4">${esc(fmtDate(p.date))}</span></div>`)
+    .onPointClick(p => openForm(p, true))
+    .ringsData([]).ringColor(() => t => `rgba(255,178,62,${1 - t})`)
+    .ringMaxRadius(4).ringPropagationSpeed(2.5).ringRepeatPeriod(900);
 
   globe.controls().autoRotate = true;
   globe.controls().autoRotateSpeed = 0.35;
   globe.controls().addEventListener('start', () => globe.controls().autoRotate = false);
-
   const resize = () => globe.width(innerWidth).height(innerHeight);
   addEventListener('resize', resize); resize();
 
   fetch(GEO_URL).then(r => r.json()).then(d => {
     countries = d.features.filter(f => f.properties.ISO_A2 !== 'AQ');
+    countries.forEach(f => byKey[key(f)] = f);
     globe.polygonsData(countries);
-    updateUI();
-  }).catch(() => { document.getElementById('info').textContent = 'Impossibile caricare i confini dei paesi.'; });
+    render();
+  }).catch(() => toast('Impossibile caricare i confini dei paesi.'));
 
-  function refresh() {
-    globe.polygonCapColor(globe.polygonCapColor())
-         .polygonAltitude(globe.polygonAltitude());
+  function refreshPolygons() {
+    globe.polygonCapColor(globe.polygonCapColor()).polygonAltitude(globe.polygonAltitude());
   }
 
-  function toast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400);
+  function fly(lat, lng) {
+    globe.controls().autoRotate = false;
+    globe.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
   }
 
-  function toggle(f) {
-    const id = iso(f);
-    const before = new Set(BADGES.filter(b => b.test(stats())).map(b => b.id));
-    if (visited.has(id)) visited.delete(id); else visited.add(id);
-    save([...visited]);
-    refresh(); updateUI();
-    if (visited.has(id)) {
-      toast(`${name(f)} aggiunto alla tua mappa`);
-      const now = BADGES.find(b => b.test(stats()) && !before.has(b.id));
-      if (now) setTimeout(() => toast(`Nuovo badge: ${now.label}`), 2600);
-    }
+  // Paese di un luogo: prima per codice, poi per posizione sulla mappa
+  function resolveCountry(lat, lng, cc, countryName) {
+    let f = null;
+    if (cc) { const C = cc.toUpperCase(); f = countries.find(c => c.properties.ISO_A2_EH === C || c.properties.ISO_A2 === C); }
+    if (!f) f = countries.find(c => {
+      const g = c.geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+      return polys.some(p => inPoly(lng, lat, p));
+    });
+    if (f) return { country: key(f), countryName: cname(f) };
+    if (countryName) return { country: 'name:' + countryName, countryName };
+    return { country: null, countryName: '' };
   }
 
   function stats() {
-    const vs = countries.filter(f => visited.has(iso(f)));
-    const conts = new Set(vs.map(f => f.properties.CONTINENT)
+    const keys = new Set(pins.map(p => p.country).filter(Boolean));
+    const conts = new Set([...keys].map(k => byKey[k]?.properties.CONTINENT)
       .filter(c => c && !['Seven seas (open ocean)', 'Antarctica'].includes(c)));
-    return { n: vs.length, c: conts.size, list: vs };
+    return { places: pins.length, countries: keys.size, conts: conts.size, keys };
   }
 
-  function updateUI() {
-    const s = stats(), total = countries.length || 1;
-    const pct = Math.round(s.n / total * 100);
-    document.getElementById('count').textContent = s.n;
-    document.getElementById('pct').textContent = pct + '%';
-    document.getElementById('fill').style.width = pct + '%';
-    document.getElementById('cont').textContent = s.c + '/6';
-    document.getElementById('badges').innerHTML =
-      BADGES.map(b => `<span class="badge ${b.test(s) ? 'on' : ''}">${b.label}</span>`).join('');
-    document.getElementById('empty').style.display = s.n ? 'none' : 'block';
-    const ul = document.getElementById('ul');
-    ul.innerHTML = s.list.sort((a, b) => name(a).localeCompare(name(b)))
-      .map(f => `<li><span>${name(f)}</span><button aria-label="Rimuovi ${name(f)}" data-id="${iso(f)}">×</button></li>`).join('');
-    ul.querySelectorAll('button').forEach(btn => btn.onclick = () => {
-      toggle(countries.find(f => iso(f) === btn.dataset.id));
+  function render() {
+    const s = stats();
+    visitedKeys = s.keys;
+    globe.pointsData(pins.slice());
+    refreshPolygons();
+    const pct = Math.min(100, Math.round(s.countries / WORLD_COUNTRIES * 100));
+    $('nPlaces').textContent = s.places;
+    $('nCountries').textContent = s.countries;
+    $('pct').textContent = pct + '%';
+    $('fill').style.width = pct + '%';
+    $('cont').textContent = s.conts + '/6';
+    $('mini').textContent = `${s.places} ${s.places === 1 ? 'luogo' : 'luoghi'} · ${s.countries} ${s.countries === 1 ? 'paese' : 'paesi'}`;
+    $('badges').innerHTML = BADGES.map(b => `<span class="badge ${b.test(s) ? 'on' : ''}">${b.label}</span>`).join('');
+    $('empty').style.display = pins.length ? 'none' : 'block';
+    const sorted = pins.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    $('list').innerHTML = sorted.map(p => `<li><button data-id="${esc(p.id)}"><div class="t">${esc(p.name)}</div><div class="s">${esc([fmtDate(p.date), p.countryName].filter(Boolean).join(' · '))}</div></button></li>`).join('');
+    $('list').querySelectorAll('button').forEach(b => b.onclick = () => {
+      const p = pins.find(x => x.id === b.dataset.id);
+      if (p) { fly(p.lat, p.lng); openForm(p, true); }
     });
   }
+
+  // Form
+  function openForm(data, isEdit) {
+    editing = isEdit ? data : null;
+    $('cardTitle').textContent = isEdit ? 'Modifica ricordo' : 'Nuovo ricordo';
+    $('where').textContent = [data.countryName, `${data.lat.toFixed(2)}°, ${data.lng.toFixed(2)}°`].filter(Boolean).join(' · ');
+    $('fName').value = data.name || '';
+    $('fDate').value = data.date || new Date().toISOString().slice(0, 10);
+    $('fNote').value = data.note || '';
+    $('bDelete').style.display = isEdit ? 'block' : 'none';
+    $('bDelete').textContent = 'Elimina';
+    $('overlay').classList.add('show');
+    openForm.data = data;
+    setTimeout(() => $('fName').focus(), 50);
+  }
+  function closeForm() { $('overlay').classList.remove('show'); editing = null; }
+
+  $('bCancel').onclick = closeForm;
+  $('overlay').addEventListener('mousedown', e => { if (e.target === $('overlay')) closeForm(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') closeForm(); });
+
+  $('bSave').onclick = () => {
+    const d = openForm.data;
+    const name = $('fName').value.trim();
+    if (!name) { $('fName').focus(); return; }
+    const before = new Set(BADGES.filter(b => b.test(stats())).map(b => b.label));
+    if (editing) {
+      Object.assign(editing, { name, date: $('fDate').value, note: $('fNote').value.trim() });
+    } else {
+      const c = d.country !== undefined ? { country: d.country, countryName: d.countryName }
+                                        : resolveCountry(d.lat, d.lng, d.cc, d.countryName);
+      const pin = { id: Date.now().toString(36), name, lat: d.lat, lng: d.lng,
+        date: $('fDate').value, note: $('fNote').value.trim(), ...c };
+      pins.push(pin);
+      globe.ringsData([pin]); setTimeout(() => globe.ringsData([]), 3000);
+      toast(`${name} aggiunto ai tuoi ricordi`);
+    }
+    save(pins); closeForm(); render();
+    const nb = BADGES.find(b => b.test(stats()) && !before.has(b.label));
+    if (nb) setTimeout(() => toast(`Nuovo badge: ${nb.label}`), 2800);
+  };
+
+  $('bDelete').onclick = () => {
+    if ($('bDelete').textContent === 'Elimina') { $('bDelete').textContent = 'Conferma eliminazione'; return; }
+    pins = pins.filter(p => p !== editing);
+    save(pins); closeForm(); render();
+  };
+
+  // Aggiunta toccando il globo
+  async function addFromTap(f, lat, lng) {
+    fly(lat, lng);
+    toast('Cerco il luogo…');
+    let name = '';
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=it&lat=${lat}&lon=${lng}`);
+      const j = await r.json(); const a = j.address || {};
+      name = j.name || a.city || a.town || a.village || a.county || a.state || '';
+    } catch {}
+    $('toast').classList.remove('show');
+    openForm({ name, lat, lng, country: key(f), countryName: cname(f) }, false);
+  }
+
+  // Ricerca
+  $('searchForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = $('q').value.trim(); if (!q) return;
+    const box = $('results');
+    $('go').disabled = true;
+    box.innerHTML = '<li class="msg">Cerco…</li>'; box.classList.add('show');
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=it&q=' + encodeURIComponent(q));
+      if (!r.ok) throw new Error();
+      const res = await r.json();
+      if (!res.length) { box.innerHTML = '<li class="msg">Nessun risultato. Prova con un altro nome.</li>'; return; }
+      box.innerHTML = res.map((x, i) => `<li><button data-i="${i}"><div class="t">${esc(x.name || x.display_name.split(',')[0])}</div><div class="s">${esc(x.display_name)}</div></button></li>`).join('');
+      box.querySelectorAll('button').forEach(b => b.onclick = () => {
+        const x = res[+b.dataset.i], lat = +x.lat, lng = +x.lon;
+        box.classList.remove('show'); $('q').value = ''; $('q').blur();
+        fly(lat, lng);
+        openForm({ name: x.name || x.display_name.split(',')[0], lat, lng,
+          cc: x.address?.country_code, countryName: x.address?.country,
+          ...resolveCountry(lat, lng, x.address?.country_code, x.address?.country) }, false);
+      });
+    } catch { box.innerHTML = '<li class="msg">Ricerca non riuscita. Riprova tra un attimo.</li>'; }
+    finally { $('go').disabled = false; }
+  });
+  document.addEventListener('mousedown', e => { if (!$('search').contains(e.target)) $('results').classList.remove('show'); });
+
+  // Pannello su mobile
+  $('sideHead').onclick = () => { if (innerWidth <= 720) $('side').classList.toggle('open'); };
 }
 </script>
 </body>
