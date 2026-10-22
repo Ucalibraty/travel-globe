@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Globe</title>
+<style>
+  :root {
+    --sea: #07131f;
+    --ink: #e9f1f5;
+    --muted: #8fa6b4;
+    --panel: rgba(9, 24, 37, 0.82);
+    --line: rgba(143, 166, 180, 0.25);
+    --visited: #ffb23e;
+    --land: #1d4a5c;
+    --hover: #3fb6a8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--sea); color: var(--ink);
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #globe { position: fixed; inset: 0; }
+
+  .panel { position: fixed; background: var(--panel); backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  #stats { top: 16px; left: 16px; width: 280px; }
+  #stats h1 { margin: 0 0 2px; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+  #stats .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .big { font-size: 44px; line-height: 1; font-weight: 700; color: var(--visited); }
+  .big small { font-size: 15px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); margin: 12px 0 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--visited); transition: width .5s ease; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .row b { color: var(--ink); font-weight: 600; }
+
+  #badges { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 12px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line);
+    color: var(--muted); transition: all .3s; }
+  .badge.on { color: #2a1a00; background: var(--visited); border-color: var(--visited); font-weight: 600; }
+
+  #info { bottom: 16px; left: 50%; transform: translateX(-50%); padding: 10px 16px; font-size: 14px;
+    text-align: center; max-width: calc(100vw - 32px); }
+  #info b { color: var(--visited); }
+  #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -80px); background: var(--visited);
+    color: #2a1a00; font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: transform .35s ease;
+    max-width: calc(100vw - 32px); text-align: center; z-index: 5; }
+  #toast.show { transform: translate(-50%, 0); }
+
+  #list { top: 16px; right: 16px; width: 220px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+  #list h2 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  #list ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; font-size: 13px; }
+  #list li { padding: 6px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+  #list li button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
+  #list li button:hover, #list li button:focus-visible { color: var(--ink); outline: 1px solid var(--muted); }
+  #empty { color: var(--muted); font-size: 13px; margin: 0; }
+
+  @media (max-width: 720px) {
+    #list { display: none; }
+    #stats { width: calc(100vw - 32px); padding: 12px 14px; }
+    .big { font-size: 34px; }
+    #badges { margin-top: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="globe"></div>
+
+<div id="stats" class="panel">
+  <h1>Il mio mondo</h1>
+  <p class="sub">Tocca un paese per segnarlo come visitato.</p>
+  <div class="big"><span id="count">0</span><small>paesi visitati</small></div>
+  <div class="bar"><i id="fill"></i></div>
+  <div class="row"><span>Mondo esplorato <b id="pct">0%</b></span><span>Continenti <b id="cont">0/6</b></span></div>
+  <div id="badges"></div>
+</div>
+
+<div id="list" class="panel">
+  <h2>Paesi visitati</h2>
+  <p id="empty">Ancora nessun paese. Da dove parti?</p>
+  <ul id="ul"></ul>
+</div>
+
+<div id="info" class="panel">Trascina per ruotare, scorri per zoomare.</div>
+<div id="toast"></div>
+
+<script>
+// Caricamento libreria con fallback
+function loadScript(src) {
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = ok; s.onerror = ko;
+    document.head.appendChild(s);
+  });
+}
+loadScript('https://cdnjs.cloudflare.com/ajax/libs/globe.gl/2.33.1/globe.gl.min.js')
+  .catch(() => loadScript('https://cdn.jsdelivr.net/npm/globe.gl'))
+  .then(start)
+  .catch(() => { document.getElementById('info').textContent = 'Impossibile caricare Globe.GL. Controlla la connessione.'; });
+
+const GEO_URL = 'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson';
+const TEXTURE = 'https://unpkg.com/three-globe/example/img/earth-night.jpg';
+const BUMP = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
+
+// Persistenza: localStorage se disponibile, altrimenti memoria
+const KEY = 'travel-globe:visited';
+let memory = [];
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return memory; } }
+function save(arr) { memory = arr; try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {} }
+
+const BADGES = [
+  { id: 'b1',  label: 'Primo passo',        test: s => s.n >= 1 },
+  { id: 'b5',  label: '5 paesi',            test: s => s.n >= 5 },
+  { id: 'b10', label: '10 paesi',           test: s => s.n >= 10 },
+  { id: 'b25', label: '25 paesi',           test: s => s.n >= 25 },
+  { id: 'bc3', label: '3 continenti',       test: s => s.c >= 3 },
+  { id: 'bc6', label: 'Giro del mondo',     test: s => s.c >= 6 },
+];
+
+function start() {
+  const iso = f => f.properties.ISO_A3 !== '-99' ? f.properties.ISO_A3 : f.properties.ADM0_A3;
+  const name = f => f.properties.NAME_IT || f.properties.NAME || f.properties.ADMIN;
+  let visited = new Set(load());
+  let hover = null;
+  let countries = [];
+
+  const globe = Globe()(document.getElementById('globe'))
+    .globeImageUrl(TEXTURE)
+    .bumpImageUrl(BUMP)
+    .backgroundColor('#07131f')
+    .atmosphereColor('#6ec6d8')
+    .atmosphereAltitude(0.18)
+    .polygonCapColor(f => visited.has(iso(f)) ? 'rgba(255,178,62,0.85)'
+                       : f === hover ? 'rgba(63,182,168,0.6)' : 'rgba(29,74,92,0.35)')
+    .polygonSideColor(() => 'rgba(255,255,255,0.05)')
+    .polygonStrokeColor(() => 'rgba(160,200,215,0.35)')
+    .polygonAltitude(f => visited.has(iso(f)) ? 0.03 : f === hover ? 0.02 : 0.006)
+    .polygonLabel(f => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui">
+        <b>${name(f)}</b><br><span style="color:#8fa6b4">${visited.has(iso(f)) ? 'Visitato' : 'Tocca per segnare'}</span></div>`)
+    .onPolygonHover(f => { hover = f; refresh(); document.body.style.cursor = f ? 'pointer' : 'default'; })
+    .onPolygonClick(f => toggle(f))
+    .polygonsTransitionDuration(250);
+
+  globe.controls().autoRotate = true;
+  globe.controls().autoRotateSpeed = 0.35;
+  globe.controls().addEventListener('start', () => globe.controls().autoRotate = false);
+
+  const resize = () => globe.width(innerWidth).height(innerHeight);
+  addEventListener('resize', resize); resize();
+
+  fetch(GEO_URL).then(r => r.json()).then(d => {
+    countries = d.features.filter(f => f.properties.ISO_A2 !== 'AQ');
+    globe.polygonsData(countries);
+    updateUI();
+  }).catch(() => { document.getElementById('info').textContent = 'Impossibile caricare i confini dei paesi.'; });
+
+  function refresh() {
+    globe.polygonCapColor(globe.polygonCapColor())
+         .polygonAltitude(globe.polygonAltitude());
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function toggle(f) {
+    const id = iso(f);
+    const before = new Set(BADGES.filter(b => b.test(stats())).map(b => b.id));
+    if (visited.has(id)) visited.delete(id); else visited.add(id);
+    save([...visited]);
+    refresh(); updateUI();
+    if (visited.has(id)) {
+      toast(`${name(f)} aggiunto alla tua mappa`);
+      const now = BADGES.find(b => b.test(stats()) && !before.has(b.id));
+      if (now) setTimeout(() => toast(`Nuovo badge: ${now.label}`), 2600);
+    }
+  }
+
+  function stats() {
+    const vs = countries.filter(f => visited.has(iso(f)));
+    const conts = new Set(vs.map(f => f.properties.CONTINENT)
+      .filter(c => c && !['Seven seas (open ocean)', 'Antarctica'].includes(c)));
+    return { n: vs.length, c: conts.size, list: vs };
+  }
+
+  function updateUI() {
+    const s = stats(), total = countries.length || 1;
+    const pct = Math.round(s.n / total * 100);
+    document.getElementById('count').textContent = s.n;
+    document.getElementById('pct').textContent = pct + '%';
+    document.getElementById('fill').style.width = pct + '%';
+    document.getElementById('cont').textContent = s.c + '/6';
+    document.getElementById('badges').innerHTML =
+      BADGES.map(b => `<span class="badge ${b.test(s) ? 'on' : ''}">${b.label}</span>`).join('');
+    document.getElementById('empty').style.display = s.n ? 'none' : 'block';
+    const ul = document.getElementById('ul');
+    ul.innerHTML = s.list.sort((a, b) => name(a).localeCompare(name(b)))
+      .map(f => `<li><span>${name(f)}</span><button aria-label="Rimuovi ${name(f)}" data-id="${iso(f)}">×</button></li>`).join('');
+    ul.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      toggle(countries.find(f => iso(f) === btn.dataset.id));
+    });
+  }
+}
+</script>
+</body>
+</html>
