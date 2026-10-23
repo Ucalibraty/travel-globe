@@ -8,14 +8,14 @@
   :root {
     --bg: #000; --ink: #f2f2f7; --muted: #8e8e93;
     --panel: #1c1c1e; --line: rgba(255, 255, 255, 0.08);
-    --accent: #ffffff; --danger: #ff453a;
+    --accent: #ffffff; --gold: #ffcc4d; --danger: #ff453a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
     font-family: -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
   button, input, textarea { font: inherit; color: inherit; }
-  #globe { position: fixed; inset: 0; }
-  /* niente backdrop-filter: sopra WebGL costa molto su mobile */
+  #globe { position: fixed; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
+  #globe.ready { opacity: 1; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
 
   /* Ricerca */
@@ -39,20 +39,44 @@
   #side { position: fixed; top: 76px; left: 16px; bottom: 16px; width: 320px; display: flex; flex-direction: column; z-index: 3; overflow: hidden; }
   .grab { display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 40px; height: 5px; border-radius: 3px; background: #48484a; }
   #sideHead { padding: 14px 16px; cursor: default; }
-  #sideHead h1 { margin: 0; font-size: 17px; font-weight: 600; }
-  #sideHead .mini { color: var(--muted); font-size: 13px; }
-  #sideBody { padding: 0 16px 14px; overflow-y: auto; flex: 1; }
-  .big { font-size: 40px; line-height: 1; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
-  .big small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
-  .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin: 14px 0 8px; overflow: hidden; }
+  #sideBody { padding: 0 16px 14px; overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #3a3a3c transparent; }
+  #sideBody::-webkit-scrollbar, #results::-webkit-scrollbar { width: 6px; }
+  #sideBody::-webkit-scrollbar-thumb, #results::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 3px; }
+  #sideBody::-webkit-scrollbar-track, #results::-webkit-scrollbar-track { background: transparent; }
+
+  /* Livello / XP */
+  .lvl { display: flex; align-items: center; gap: 12px; }
+  .ring { width: 48px; height: 48px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: conic-gradient(var(--gold) var(--p, 0%), rgba(255,255,255,.1) 0); }
+  .ring span { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); display: grid; place-items: center;
+    font-weight: 800; font-size: 17px; color: var(--gold); }
+  .lvlInfo { flex: 1; min-width: 0; }
+  .lvlTitle { font-size: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .lvlTitle small { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .xpbar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.1); margin: 6px 0 4px; overflow: hidden; }
+  .xpbar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffb347, var(--gold)); transition: width .6s ease; }
+  .mini { color: var(--muted); font-size: 12px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+  .tile { background: rgba(255,255,255,.04); border-radius: 12px; padding: 10px; }
+  .tile b { display: block; font-size: 22px; line-height: 1.1; }
+  .tile span { font-size: 11px; color: var(--muted); }
+  .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin: 8px 0 0; overflow: hidden; }
   .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .5s ease; }
-  .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 12px; }
   .row b { color: var(--ink); }
   #regions .row { margin-top: 8px; }
-  #badges { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .badge { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); }
-  .badge.on { color: #000; background: var(--accent); font-weight: 600; }
-  h2 { font-size: 14px; margin: 20px 0 6px; }
+
+  h2 { font-size: 14px; margin: 20px 0 8px; display: flex; justify-content: space-between; }
+  h2 small { font-weight: 500; color: var(--muted); }
+  #trophies { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tr { aspect-ratio: 1; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    font-size: 10px; line-height: 1.15; color: var(--muted); text-align: center; padding: 4px; cursor: pointer; }
+  .tr .ic { font-size: 22px; filter: grayscale(1); opacity: .3; }
+  .tr.on { background: linear-gradient(160deg, rgba(255,204,77,.2), rgba(255,204,77,.04)); border-color: rgba(255,204,77,.45); color: var(--ink); }
+  .tr.on .ic { filter: none; opacity: 1; }
+
   #empty { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.5; }
   #list { list-style: none; margin: 0; padding: 0; }
   #list li button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 2px; cursor: pointer; }
@@ -77,19 +101,56 @@
   .actions .btn { flex: 1; }
 
   #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -120px); background: var(--accent); color: #000;
-    font-weight: 600; padding: 10px 16px; border-radius: 12px; transition: transform .35s ease; max-width: calc(100vw - 32px); text-align: center; z-index: 20; }
+    font-weight: 600; padding: 10px 16px; border-radius: 12px; transition: transform .35s ease; max-width: calc(100vw - 32px); text-align: center; z-index: 40; }
   #toast.show { transform: translate(-50%, 0); }
+
+  /* +XP che vola */
+  #xpFloat { position: fixed; left: 50%; top: 38%; font-weight: 800; font-size: 30px; color: var(--gold);
+    text-shadow: 0 0 18px rgba(255,204,77,.7); pointer-events: none; opacity: 0; z-index: 25; transform: translate(-50%, 0); }
+  #xpFloat.go { animation: xpUp 1.5s ease-out forwards; }
+  @keyframes xpUp {
+    0% { opacity: 0; transform: translate(-50%, 24px) scale(.7); }
+    15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+    30% { transform: translate(-50%, -6px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -70px) scale(1); }
+  }
+
+  /* Schermata di sblocco */
+  #unlock { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; padding: 16px;
+    background: radial-gradient(circle at 50% 42%, rgba(42,54,130,.6), rgba(0,0,0,.88) 62%); }
+  #unlock.show { display: flex; }
+  .uCard { position: relative; text-align: center; max-width: 340px; width: 100%; animation: cardIn .45s cubic-bezier(.2,1.3,.4,1) both; }
+  .uRays { position: absolute; left: 50%; top: 60px; width: 380px; height: 380px; margin: -190px 0 0 -190px; border-radius: 50%; pointer-events: none;
+    background: repeating-conic-gradient(rgba(255,204,77,.22) 0 7deg, transparent 7deg 22deg);
+    -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%); mask: radial-gradient(circle, #000 18%, transparent 68%);
+    animation: spin 14s linear infinite; }
+  .uIcon { position: relative; width: 120px; height: 120px; margin: 0 auto 18px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 58px; font-weight: 900; color: #3a2600;
+    background: radial-gradient(circle at 35% 30%, #fff1c4, var(--gold) 45%, #b8860b);
+    box-shadow: 0 0 0 6px rgba(255,204,77,.18), 0 0 50px rgba(255,204,77,.55);
+    animation: iconIn .75s .1s cubic-bezier(.2,1.6,.4,1) both; }
+  .uKicker { position: relative; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .uName { position: relative; font-size: 28px; font-weight: 800; margin: 6px 0 6px; }
+  .uDesc { position: relative; color: #c7c7cc; font-size: 14px; line-height: 1.4; margin: 0 0 22px; }
+  .uCard .btn { position: relative; min-width: 160px; padding: 12px 20px; }
+  @keyframes cardIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+  @keyframes iconIn { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 720px) {
     #search { top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: 10px; width: auto; }
     #side { top: auto; left: 0; right: 0; bottom: 0; width: auto; border: 0; border-radius: 22px 22px 0 0;
-      max-height: 86px; transition: max-height .3s ease; padding-bottom: env(safe-area-inset-bottom); }
-    #side.open { max-height: 62vh; }
+      max-height: calc(98px + env(safe-area-inset-bottom)); transition: max-height .3s ease; padding-bottom: env(safe-area-inset-bottom); }
+    #side.open { max-height: 66vh; }
+    #side:not(.open) #sideBody { visibility: hidden; }
     .grab { display: block; }
-    #sideHead { cursor: pointer; padding-top: 24px; }
-    .big { font-size: 32px; }
+    #sideHead { cursor: pointer; padding-top: 22px; }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .uRays, .uCard, .uIcon, #xpFloat.go { animation: none !important; }
+    #xpFloat.go { opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -108,17 +169,28 @@
 <aside id="side" class="panel">
   <span class="grab" aria-hidden="true"></span>
   <div id="sideHead">
-    <h1>Il mio mondo</h1>
-    <div class="mini" id="mini">0 luoghi · 0 paesi</div>
+    <div class="lvl">
+      <div class="ring" id="ring"><span id="lvlNum">1</span></div>
+      <div class="lvlInfo">
+        <div class="lvlTitle"><span id="lvlTitle">Turista</span><small id="xpTxt">0 / 200 XP</small></div>
+        <div class="xpbar"><i id="xpFill"></i></div>
+        <div class="mini" id="mini">0 luoghi · 0 paesi</div>
+      </div>
+    </div>
   </div>
   <div id="sideBody">
-    <div class="big"><span id="nPlaces">0</span><small>luoghi visitati</small></div>
+    <div class="tiles">
+      <div class="tile"><b id="nPlaces">0</b><span>Luoghi</span></div>
+      <div class="tile"><b id="nCountries">0</b><span>Paesi</span></div>
+      <div class="tile"><b id="cont">0/6</b><span>Continenti</span></div>
+    </div>
+    <div class="row"><span>Mondo scoperto</span><b id="pct">0%</b></div>
     <div class="bar"><i id="fill"></i></div>
-    <div class="row"><span>Paesi <b id="nCountries">0</b></span><span>Mondo esplorato <b id="pct">0%</b></span><span>Continenti <b id="cont">0/6</b></span></div>
     <div id="regions"></div>
-    <div id="badges"></div>
+    <h2>Trofei <small id="trCount">0/8</small></h2>
+    <div id="trophies"></div>
     <h2>I miei ricordi</h2>
-    <p id="empty">Cerca un luogo in alto, oppure tocca un paese sul globo, per aggiungere il tuo primo ricordo.</p>
+    <p id="empty">Il mondo è avvolto nella nebbia. Cerca un luogo in alto, oppure tocca un paese sul globo, per iniziare a scoprirlo.</p>
     <ul id="list"></ul>
     <p class="credit">Ricerca luoghi: dati © contributori di OpenStreetMap (Nominatim).</p>
   </div>
@@ -142,6 +214,18 @@
     </div>
   </div>
 </div>
+
+<div id="unlock" role="dialog" aria-modal="true" aria-labelledby="uName">
+  <div class="uCard">
+    <div class="uRays"></div>
+    <div class="uIcon" id="uIcon"></div>
+    <div class="uKicker" id="uKicker">Trofeo sbloccato</div>
+    <div class="uName" id="uName"></div>
+    <p class="uDesc" id="uDesc"></p>
+    <button class="btn" id="uOk" type="button">Continua</button>
+  </div>
+</div>
+<div id="xpFloat"></div>
 <div id="toast"></div>
 
 <script>
@@ -154,14 +238,13 @@ loadScript('https://cdnjs.cloudflare.com/ajax/libs/globe.gl/2.33.1/globe.gl.min.
   .catch(() => toast('Impossibile caricare il globo. Controlla la connessione.'));
 
 const GEO_URL = 'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson';
-// Palette minimal: oceano blu notte, terre nere, visitati grigio chiaro
+// Palette: oceano blu notte, terre inesplorate scure sotto la nebbia, terre scoperte luminose
 const C = {
-  ocean: '#0a0f45', oceanGlow: '#05082a', atmosphere: '#3a4bff',
-  land: '#000000', hover: '#1f2550', visited: '#d1d3db', regionDim: '#34384a',
-  pin: '#ffffff'
+  atmosphere: '#3a4bff',
+  land: '#05070f', hover: '#22306e', visited: '#e9eef8', regionDim: '#141a33',
+  visitedEdge: 'rgba(143,180,255,0.9)', pin: '#ffcc4d'
 };
 const WORLD_COUNTRIES = 195;
-// Livelli di zoom 0 (lontano) → 4 (molto vicino)
 const LABEL_SCALE = [0, 1, 0.65, 0.42, 0.26];
 const MIN_GAP = [0, 6, 3.5, 2, 1.1];
 // [nome, lat, lng, livello]: 1 = visibile già con zoom medio, 2 = solo da vicino
@@ -203,6 +286,27 @@ const REGION_SOURCES = {
   }
 };
 
+// ===== Gioco: XP, livelli, trofei =====
+const XP = { place: 50, country: 200, region: 100, continent: 500, trophy: 150 };
+const TITLES = ['Turista', 'Viaggiatore', 'Esploratore', 'Avventuriero', 'Navigatore', 'Cartografo', 'Pioniere', 'Globetrotter', 'Leggenda'];
+// XP totali per arrivare al livello n+1: 200, 600, 1200, 2000, 3000…
+const xpTo = n => 100 * n * (n + 1);
+function levelOf(xp) {
+  let n = 0;
+  while (xpTo(n + 1) <= xp) n++;
+  return { lv: n + 1, cur: xp - xpTo(n), need: xpTo(n + 1) - xpTo(n), title: TITLES[Math.min(n, TITLES.length - 1)] };
+}
+const BADGES = [
+  { label: 'Primo ricordo',  goal: 'aggiungi il tuo primo luogo', icon: '📍', desc: 'Hai aggiunto il tuo primo luogo.',            test: s => s.places >= 1 },
+  { label: '5 luoghi',       goal: 'aggiungi 5 luoghi', icon: '🎒', desc: 'Cinque luoghi nel tuo diario di viaggio.',    test: s => s.places >= 5 },
+  { label: '10 luoghi',      goal: 'aggiungi 10 luoghi', icon: '🧳', desc: 'Dieci luoghi: stai facendo sul serio.',       test: s => s.places >= 10 },
+  { label: '3 paesi',        goal: 'visita 3 paesi', icon: '🛂', desc: 'Hai messo piede in tre paesi.',                test: s => s.countries >= 3 },
+  { label: '10 paesi',       goal: 'visita 10 paesi', icon: '🗺️', desc: 'Dieci paesi scoperti.',                        test: s => s.countries >= 10 },
+  { label: '3 continenti',   goal: 'visita 3 continenti', icon: '🧭', desc: 'Tre continenti esplorati.',                    test: s => s.conts >= 3 },
+  { label: 'Giro del mondo', goal: 'visita tutti e 6 i continenti', icon: '🌍', desc: 'Hai visitato tutti e 6 i continenti.',         test: s => s.conts >= 6 },
+  { label: 'Paese completo', goal: 'scopri tutte le regioni di un paese', icon: '🏆', desc: 'Hai scoperto tutte le regioni di un paese.',   test: s => s.fullCountries >= 1 },
+];
+
 let memory = [];
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return memory; } }
 function save(arr) { memory = arr; try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {} }
@@ -210,22 +314,30 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const tip = (title, sub) => `<div style="background:#1c1c1e;padding:6px 10px;border-radius:10px;color:#f2f2f7;font:13px system-ui"><b>${title}</b><br><span style="color:#8e8e93">${sub}</span></div>`;
+const wait = ms => new Promise(r => setTimeout(r, ms));
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
 }
-
-const BADGES = [
-  { label: 'Primo ricordo',  test: s => s.places >= 1 },
-  { label: '5 luoghi',       test: s => s.places >= 5 },
-  { label: '10 luoghi',      test: s => s.places >= 10 },
-  { label: '3 paesi',        test: s => s.countries >= 3 },
-  { label: '10 paesi',       test: s => s.countries >= 10 },
-  { label: '3 continenti',   test: s => s.conts >= 3 },
-  { label: 'Giro del mondo', test: s => s.conts >= 6 },
-  { label: 'Paese completo', test: s => s.fullCountries >= 1 },
-];
+function floatXP(n) {
+  const el = $('xpFloat');
+  el.textContent = `+${n} XP`;
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+}
+// Schermate di sblocco una dopo l'altra
+function showUnlocks(list) {
+  return list.reduce((p, u) => p.then(() => new Promise(done => {
+    $('uIcon').textContent = u.icon;
+    $('uKicker').textContent = u.kicker;
+    $('uName').textContent = u.name;
+    $('uDesc').textContent = u.desc;
+    const box = $('unlock');
+    box.classList.remove('show'); void box.offsetWidth; box.classList.add('show');
+    setTimeout(() => $('uOk').focus(), 50);
+    $('uOk').onclick = () => { box.classList.remove('show'); setTimeout(done, 150); };
+  })), Promise.resolve());
+}
 
 function inRing(x, y, ring) {
   let inside = false;
@@ -241,9 +353,56 @@ function inPoly(x, y, rings) {
   return true;
 }
 
+// Generatore casuale con seme: la nebbia è sempre uguale
+function rng(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function blob(ctx, x, y, r, color, W) {
+  [x, x - W, x + W].forEach(cx => {
+    if (cx + r < 0 || cx - r > W) return;
+    const g = ctx.createRadialGradient(cx, y, 0, cx, y, r);
+    g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(cx - r, y - r, r * 2, r * 2);
+  });
+}
+// Texture dell'oceano generata al volo (niente immagini da scaricare)
+function oceanTexture() {
+  const W = 1024, H = 512, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#060f2e'); g.addColorStop(0.5, '#0b1d55'); g.addColorStop(1, '#060f2e');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const r = rng(7);
+  for (let i = 0; i < 140; i++) blob(ctx, r() * W, r() * H, (0.02 + r() * 0.06) * W, `rgba(40,70,170,${0.04 + r() * 0.06})`, W);
+  return cv.toDataURL('image/jpeg', 0.85);
+}
+// Strato di nebbia: scuro con banchi più chiari
+function fogBase(W, H) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(5,8,20,0.66)'; ctx.fillRect(0, 0, W, H);
+  const r = rng(42), n = Math.round(W / 6);
+  for (let i = 0; i < n; i++) {
+    const light = r() < 0.6;
+    blob(ctx, r() * W, r() * H, (0.015 + r() * 0.07) * W,
+      light ? `rgba(130,150,215,${0.04 + r() * 0.08})` : `rgba(0,0,0,${0.08 + r() * 0.12})`, W);
+  }
+  return cv;
+}
+
 function start() {
   const key = f => f.properties.ADM0_A3;
-  const cname = f => f.properties.NAME_IT || f.properties.NAME || f.properties.ADMIN;
+  let itNames = null;
+  try { itNames = new Intl.DisplayNames(['it'], { type: 'region' }); } catch {}
+  const cname = f => {
+    const P = f.properties, iso = [P.ISO_A2_EH, P.ISO_A2].find(c => c && /^[A-Z]{2}$/.test(c));
+    if (itNames && iso) { try { const n = itNames.of(iso); if (n && n !== iso) return n; } catch {} }
+    return P.NAME_IT || P.NAME || P.ADMIN;
+  };
+  const countryLabel = p => byKey[p.country] ? cname(byKey[p.country]) : p.countryName;
   let pins = load();
   let countries = [], byKey = {};
   let hover = null, visitedKeys = new Set(), visitedRegions = new Set(), editing = null, tier = -1, pinR = 0.1, lastA = 0;
@@ -253,7 +412,6 @@ function start() {
     ? { country: f._ckey, countryName: REGION_SOURCES[f._ckey].countryName, region: f._name }
     : { country: key(f), countryName: cname(f) };
 
-  // Colore unico per tappo e lati: superfici piatte, look minimal
   const fill = f => {
     if (f._region) {
       if (visitedRegions.has(f._rkey)) return C.visited;
@@ -265,35 +423,34 @@ function start() {
   };
   const isVisited = f => f._region ? visitedRegions.has(f._rkey) : visitedKeys.has(key(f));
 
-  const globe = Globe({ rendererConfig: { antialias: true, alpha: false, powerPreference: 'high-performance' } })($('globe'))
-    // Nessuna texture: niente download da ~1 MB e meno lavoro per la GPU
+  const globe = Globe({ rendererConfig: { antialias: true, alpha: false, powerPreference: 'high-performance', logarithmicDepthBuffer: true } })($('globe'))
+    .globeImageUrl(oceanTexture())
     .backgroundColor('#000000')
     .showGraticules(false)
-    .atmosphereColor(C.atmosphere).atmosphereAltitude(0.13)
+    .atmosphereColor(C.atmosphere).atmosphereAltitude(0.15)
     .polygonCapColor(fill)
     .polygonSideColor(fill)
-    // Bordi solo tra le regioni; per i paesi niente linee (meno geometria da disegnare)
-    .polygonStrokeColor(f => f._region ? 'rgba(0,0,0,0.6)' : false)
-    .polygonAltitude(f => isVisited(f) ? 0.008 : 0.004)
-    .polygonLabel(f => tip(esc(polyName(f)), `${f._region ? esc(REGION_SOURCES[f._ckey].countryName) + ' · ' : ''}Tocca per aggiungere un ricordo`))
+    // Bordo luminoso solo sulle terre scoperte, linee scure tra le regioni
+    .polygonStrokeColor(f => isVisited(f) ? C.visitedEdge : f._region ? 'rgba(0,0,0,0.6)' : false)
+    // Le terre scoperte "bucano" la nebbia, quelle inesplorate restano sotto
+    .polygonAltitude(f => isVisited(f) ? 0.016 : 0.006)
+    .polygonCapCurvatureResolution(3)
+    .polygonLabel(f => tip(esc(polyName(f)), `${f._region ? esc(REGION_SOURCES[f._ckey].countryName) + ' · ' : ''}${isVisited(f) ? 'Scoperto · tocca per aggiungere un ricordo' : 'Inesplorato · tocca per scoprirlo'}`))
     .onPolygonHover(f => { if (f === hover) return; hover = f; refreshPolygons(); document.body.style.cursor = f ? 'pointer' : 'default'; })
     .onPolygonClick((f, ev, c) => { if (c) addFromTap(f, c.lat, c.lng); })
     .polygonsTransitionDuration(0)
     .pointsData(pins).pointLat('lat').pointLng('lng')
-    .pointColor(() => C.pin).pointAltitude(0.01).pointRadius(() => pinR)
+    .pointColor(() => C.pin).pointAltitude(0.024).pointRadius(() => pinR)
     .labelLat('lat').labelLng('lng').labelText('text').labelSize('size').labelColor('color')
-    .labelDotRadius('dot').labelAltitude(0.012).labelResolution(1)
+    .labelDotRadius('dot').labelAltitude(0.022).labelResolution(1)
     .onLabelClick(l => l.pin ? openForm(l.pin, true)
       : openForm({ name: l.text, lat: l.lat, lng: l.lng, ...resolveCountry(l.lat, l.lng) }, false))
     .pointLabel(p => tip(esc(p.name), esc(fmtDate(p.date))))
     .onPointClick(p => openForm(p, true))
-    .ringsData([]).ringColor(() => t => `rgba(255,255,255,${1 - t})`)
-    .ringMaxRadius(4).ringPropagationSpeed(2.5).ringRepeatPeriod(900);
+    .ringsData([]).ringColor(() => t => `rgba(255,204,77,${1 - t})`)
+    .ringMaxRadius(5).ringPropagationSpeed(2.5).ringRepeatPeriod(800);
 
-  // Oceano in tinta unita, opaco (niente riflessi)
   const mat = globe.globeMaterial();
-  mat.color.set(C.ocean);
-  if (mat.emissive) mat.emissive.set(C.oceanGlow);
   if (mat.specular) mat.specular.set('#000000');
   mat.shininess = 0;
 
@@ -317,7 +474,7 @@ function start() {
       const names = new Set(pins.map(p => p.name.toLowerCase()));
       const maxRank = t <= 2 ? 1 : 2;
       CITIES.filter(c => c[3] <= maxRank && !names.has(c[0].toLowerCase())).forEach(c => {
-        const item = { lat: c[1], lng: c[2], text: c[0], size: 0.42 * k, color: 'rgba(255,255,255,0.5)', dot: 0.08 * k };
+        const item = { lat: c[1], lng: c[2], text: c[0], size: 0.42 * k, color: 'rgba(255,255,255,0.4)', dot: 0.08 * k };
         if (!items.some(o => near(o, item, MIN_GAP[t]))) items.push(item);
       });
     }
@@ -330,25 +487,163 @@ function start() {
     pinR = Math.min(0.15, Math.max(0.02, 0.06 * a));
     globe.pointRadius(() => pinR);
   }
-  // Controllo periodico, sospeso quando la scheda non è visibile
   setInterval(() => { if (document.hidden) return; updateLabels(false); updatePinSize(false); }, 250);
-  // Ferma la rotazione quando la scheda è in background
   document.addEventListener('visibilitychange', () => { document.hidden ? globe.pauseAnimation() : globe.resumeAnimation(); });
   globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   const resize = () => globe.width(innerWidth).height(innerHeight);
   addEventListener('resize', resize); resize();
+
+  function fitAltitude() {
+    const cam = globe.camera();
+    const tv = Math.tan(cam.fov * Math.PI / 360);
+    const th = tv * innerWidth / innerHeight;
+    const t = (innerWidth <= 720 ? 0.88 : 0.72) * Math.min(tv, th);
+    return Math.min(3.5, Math.max(1.5, 1 / Math.sin(Math.atan(t)) - 1));
+  }
+  const fitA = fitAltitude();
+  globe.pointOfView({ lat: 30, lng: 12, altitude: fitA + 1.6 });
+
+  // ===== Nebbia di guerra =====
+  // Una sfera semitrasparente appena sopra le terre inesplorate; sopra i luoghi scoperti si apre un buco sfumato.
+  const fog = { ready: false, W: innerWidth <= 720 ? 1024 : 2048, holes: new Set(), anim: null };
+  fog.H = fog.W / 2;
+  function setupFog() {
+    let globeMesh = null;
+    globe.scene().traverse(o => { if (!globeMesh && o.isMesh && o.material === mat) globeMesh = o; });
+    if (!globeMesh || !mat.map) return false;
+    if (mat.color) mat.color.set('#ffffff');
+    if (mat.emissive) mat.emissive.set('#000000');
+    fog.base = fogBase(fog.W, fog.H);
+    fog.canvas = document.createElement('canvas');
+    fog.canvas.width = fog.W; fog.canvas.height = fog.H;
+    fog.ctx = fog.canvas.getContext('2d');
+    const Texture = mat.map.constructor;
+    fog.tex = new Texture(fog.canvas);
+    if ('colorSpace' in mat.map) fog.tex.colorSpace = mat.map.colorSpace;
+    fog.tex.needsUpdate = true;
+    const fogMat = new mat.constructor({ map: fog.tex, transparent: true, depthWrite: false, shininess: 0 });
+    if (fogMat.specular) fogMat.specular.set('#000000');
+    const mesh = new globeMesh.constructor(globeMesh.geometry, fogMat);
+    mesh.scale.setScalar(1.011);
+    mesh.raycast = () => {};          // non blocca i click sul globo
+    globeMesh.add(mesh);
+    fog.ready = true;
+    return true;
+  }
+  // Cosa va scoperto: paesi visitati (o le singole regioni dove le abbiamo) e un cerchio attorno a ogni ricordo
+  function fogTargets() {
+    const out = new Map();
+    visitedKeys.forEach(k => {
+      const regs = REGIONS[k]?.features;
+      if (regs && regs.length) regs.forEach(f => { if (visitedRegions.has(f._rkey)) out.set(f._rkey, { geom: f.geometry }); });
+      else if (byKey[k]) out.set(k, { geom: byKey[k].geometry });
+    });
+    pins.forEach(p => out.set('pin:' + p.id, { lat: p.lat, lng: p.lng }));
+    return out;
+  }
+  // Estensione in longitudine (dopo aver "srotolato" l'antimeridiano), per disegnare le copie ai bordi solo se servono
+  const spans = new WeakMap();
+  function lngSpan(geom) {
+    if (spans.has(geom)) return spans.get(geom);
+    let lo = Infinity, hi = -Infinity;
+    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+    polys.forEach(poly => poly.forEach(ring => {
+      let prev = null;
+      ring.forEach(([x]) => {
+        if (prev !== null) { while (x - prev > 180) x -= 360; while (x - prev < -180) x += 360; }
+        prev = x; lo = Math.min(lo, x); hi = Math.max(hi, x);
+      });
+    }));
+    const r = [lo, hi]; spans.set(geom, r); return r;
+  }
+  function tracePath(ctx, geom, dx) {
+    const { W, H } = fog;
+    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+    polys.forEach(poly => poly.forEach(ring => {
+      let prev = null;
+      ring.forEach(([x, y], i) => {
+        if (prev !== null) { while (x - prev > 180) x -= 360; while (x - prev < -180) x += 360; }
+        prev = x;
+        const px = (x + 180 + dx) / 360 * W, py = (90 - y) / 180 * H;
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      });
+      ctx.closePath();
+    }));
+  }
+  function drawFog(fresh, t) {
+    const { ctx, W, H } = fog;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1; ctx.filter = 'none';
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(fog.base, 0, 0);
+    ctx.globalCompositeOperation = 'destination-out';
+    if ('filter' in ctx) ctx.filter = `blur(${Math.round(W / 320)}px)`;
+    ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
+    ctx.lineWidth = W / 260; ctx.lineJoin = 'round';
+    const pr = 1.4 / 360 * W;
+    fogTargets().forEach((h, k) => {
+      ctx.globalAlpha = fresh && fresh.has(k) ? t : 1;
+      const [lo, hi] = h.geom ? lngSpan(h.geom) : [h.lng - 2, h.lng + 2];
+      [-360, 0, 360].forEach(dx => {
+        if (lo + dx > 182 || hi + dx < -182) return;   // copia fuori dalla mappa: salto
+        ctx.beginPath();
+        if (h.geom) { tracePath(ctx, h.geom, dx); ctx.fill('evenodd'); ctx.stroke(); }
+        else { ctx.arc((h.lng + 180 + dx) / 360 * W, (90 - h.lat) / 180 * H, pr, 0, Math.PI * 2); ctx.fill(); }
+      });
+    });
+    ctx.globalAlpha = 1; ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+    fog.tex.needsUpdate = true;
+  }
+  // Aggiorna la nebbia; i luoghi appena scoperti si diradano con un'animazione
+  function updateFog(animate) {
+    if (!fog.ready) return;
+    const now = new Set(fogTargets().keys());
+    const fresh = new Set([...now].filter(k => !fog.holes.has(k)));
+    fog.holes = now;
+    if (!animate || !fresh.size) {
+      // Se un'animazione è in corso la lascio finire: ridisegna già lo stato aggiornato
+      if (!fog.running) drawFog();
+      return;
+    }
+    clearInterval(fog.anim);
+    fog.running = true;
+    let step = 0; const steps = 14;
+    fog.anim = setInterval(() => {
+      step++;
+      drawFog(fresh, step / steps);
+      if (step >= steps) { clearInterval(fog.anim); fog.running = false; }
+    }, 60);
+  }
+
+  let introDone = false;
+  function intro() {
+    if (introDone || !countries.length || !fog.ready) return;
+    introDone = true;
+    updateFog(false);
+    $('globe').classList.add('ready');
+    globe.pointOfView({ lat: 30, lng: 12, altitude: fitA }, 2200);
+  }
+  // Aspetto che la texture dell'oceano sia pronta, poi creo la nebbia (se non ci riesco il globo funziona comunque)
+  let fogTries = 0;
+  (function waitGlobe() {
+    if (setupFog()) { if (introDone) updateFog(false); else intro(); return; }
+    if (++fogTries < 40) setTimeout(waitGlobe, 150);
+  })();
+  // Rete lenta o errori: dopo 6 secondi mostro comunque il globo
+  setTimeout(() => { if (!introDone) { introDone = true; $('globe').classList.add('ready'); globe.pointOfView({ lat: 30, lng: 12, altitude: fitA }, 1500); updateFog(false); } }, 6000);
 
   fetch(GEO_URL).then(r => r.json()).then(d => {
     countries = d.features.filter(f => f.properties.ISO_A2 !== 'AQ');
     countries.forEach(f => byKey[key(f)] = f);
     globe.polygonsData(countries);
     render();
+    intro();
     syncRegions();
   }).catch(() => toast('Impossibile caricare i confini dei paesi.'));
 
   function refreshPolygons(full) {
     globe.polygonCapColor(fill).polygonSideColor(fill);
-    if (full) globe.polygonAltitude(globe.polygonAltitude());
+    if (full) globe.polygonAltitude(globe.polygonAltitude()).polygonStrokeColor(globe.polygonStrokeColor());
   }
 
   async function ensureLib() {
@@ -403,7 +698,7 @@ function start() {
       }
     });
     if (changed) save(pins);
-    setPolygons(); render();
+    setPolygons(); render(true);
   }
 
   function fly(lat, lng) {
@@ -431,19 +726,32 @@ function start() {
       const n = new Set(pins.filter(p => p.country === k && p.region).map(p => p.region)).size;
       return { label: REGION_SOURCES[k].label, n, total: REGION_SOURCES[k].total };
     });
-    const fullCountries = regionStats.filter(r => r.n >= r.total).length;
-    return { places: pins.length, countries: keys.size, conts: conts.size, keys, regionStats, fullCountries };
+    const s = {
+      places: pins.length, countries: keys.size, conts: conts.size, keys, regionStats,
+      regions: new Set(pins.filter(p => p.region).map(p => p.country + ':' + p.region)).size,
+      fullCountries: regionStats.filter(r => r.n >= r.total).length
+    };
+    s.trophies = BADGES.filter(b => b.test(s)).length;
+    s.xp = s.places * XP.place + s.countries * XP.country + s.regions * XP.region + s.conts * XP.continent + s.trophies * XP.trophy;
+    return s;
   }
 
-  function render() {
+  function render(animateFog) {
     const s = stats();
     visitedKeys = s.keys;
     visitedRegions = new Set(pins.filter(p => p.region).map(p => p.country + ':' + p.region));
+    const L = levelOf(s.xp);
+    $('lvlNum').textContent = L.lv;
+    $('lvlTitle').textContent = L.title;
+    $('xpTxt').textContent = `${L.cur} / ${L.need} XP`;
+    $('xpFill').style.width = Math.round(L.cur / L.need * 100) + '%';
+    $('ring').style.setProperty('--p', Math.round(L.cur / L.need * 100) + '%');
     $('regions').innerHTML = s.regionStats.map(r => `<div class="row"><span>${esc(r.label)}</span><b>${r.n}/${r.total}</b></div>`).join('');
     globe.pointsData(pins.slice());
     updateLabels(true);
     updatePinSize(true);
     refreshPolygons(true);
+    updateFog(animateFog);
     const pct = Math.min(100, Math.round(s.countries / WORLD_COUNTRIES * 100));
     $('nPlaces').textContent = s.places;
     $('nCountries').textContent = s.countries;
@@ -451,10 +759,16 @@ function start() {
     $('fill').style.width = pct + '%';
     $('cont').textContent = s.conts + '/6';
     $('mini').textContent = `${s.places} ${s.places === 1 ? 'luogo' : 'luoghi'} · ${s.countries} ${s.countries === 1 ? 'paese' : 'paesi'}`;
-    $('badges').innerHTML = BADGES.map(b => `<span class="badge ${b.test(s) ? 'on' : ''}">${b.label}</span>`).join('');
+    $('trCount').textContent = `${s.trophies}/${BADGES.length}`;
+    $('trophies').innerHTML = BADGES.map((b, i) => `<button class="tr ${b.test(s) ? 'on' : ''}" data-i="${i}" title="${esc(b.desc)}"><span class="ic">${b.icon}</span>${esc(b.label)}</button>`).join('');
+    $('trophies').querySelectorAll('button').forEach(el => el.onclick = () => {
+      const b = BADGES[+el.dataset.i];
+      if (b.test(stats())) showUnlocks([{ icon: b.icon, kicker: 'Trofeo', name: b.label, desc: b.desc }]);
+      else toast(`🔒 ${b.label}: ${b.goal}`);
+    });
     $('empty').style.display = pins.length ? 'none' : 'block';
     const sorted = pins.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    $('list').innerHTML = sorted.map(p => `<li><button data-id="${esc(p.id)}"><div class="t">${esc(p.name)}</div><div class="s">${esc([fmtDate(p.date), p.region, p.countryName].filter(Boolean).join(' · '))}</div></button></li>`).join('');
+    $('list').innerHTML = sorted.map(p => `<li><button data-id="${esc(p.id)}"><div class="t">${esc(p.name)}</div><div class="s">${esc([fmtDate(p.date), p.region, countryLabel(p)].filter(Boolean).join(' · '))}</div></button></li>`).join('');
     $('list').querySelectorAll('button').forEach(b => b.onclick = () => {
       const p = pins.find(x => x.id === b.dataset.id);
       if (p) { fly(p.lat, p.lng); openForm(p, true); }
@@ -464,7 +778,7 @@ function start() {
   function openForm(data, isEdit) {
     editing = isEdit ? data : null;
     $('cardTitle').textContent = isEdit ? 'Modifica ricordo' : 'Nuovo ricordo';
-    $('where').textContent = [data.region, data.countryName, `${data.lat.toFixed(2)}°, ${data.lng.toFixed(2)}°`].filter(Boolean).join(' · ');
+    $('where').textContent = [data.region, countryLabel(data), `${data.lat.toFixed(2)}°, ${data.lng.toFixed(2)}°`].filter(Boolean).join(' · ');
     $('fName').value = data.name || '';
     $('fDate').value = data.date || new Date().toISOString().slice(0, 10);
     $('fNote').value = data.note || '';
@@ -481,13 +795,17 @@ function start() {
 
   $('bCancel').onclick = closeForm;
   $('overlay').addEventListener('mousedown', e => { if (e.target === $('overlay')) closeForm(); });
-  addEventListener('keydown', e => { if (e.key === 'Escape') closeForm(); });
+  addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('unlock').classList.contains('show')) $('uOk').click(); else closeForm();
+  });
 
-  $('bSave').onclick = () => {
+  $('bSave').onclick = async () => {
     const d = openForm.data;
     const name = $('fName').value.trim();
     if (!name) { $('fName').focus(); return; }
-    const before = new Set(BADGES.filter(b => b.test(stats())).map(b => b.label));
+    const before = stats();
+    let isNew = false;
     if (editing) {
       Object.assign(editing, { name, date: $('fDate').value, note: $('fNote').value.trim() });
     } else {
@@ -496,13 +814,23 @@ function start() {
       const pin = { id: Date.now().toString(36), name, lat: d.lat, lng: d.lng,
         date: $('fDate').value, note: $('fNote').value.trim(), ...c, ...(d.region ? { region: d.region } : {}) };
       pins.push(pin);
+      isNew = true;
       globe.ringsData([pin]); setTimeout(() => globe.ringsData([]), 3000);
-      toast(`${name} aggiunto ai tuoi ricordi`);
     }
-    save(pins); closeForm(); render();
-    const nb = BADGES.find(b => b.test(stats()) && !before.has(b.label));
-    if (nb) setTimeout(() => toast(`Nuovo badge: ${nb.label}`), 2800);
-    syncRegions();
+    save(pins); closeForm(); render(true);
+    if (!isNew) return;
+    await syncRegions();            // la regione può arrivare dopo: la conto prima di dare gli XP
+    const after = stats();
+    const gain = after.xp - before.xp;
+    const newCountry = after.countries > before.countries;
+    toast(newCountry ? `${countryLabel(pins[pins.length - 1])} scoperto!` : `${name} aggiunto ai tuoi ricordi`);
+    if (gain > 0) floatXP(gain);
+    const unlocks = [];
+    const Lb = levelOf(before.xp), La = levelOf(after.xp);
+    if (La.lv > Lb.lv) unlocks.push({ icon: La.lv, kicker: 'Livello raggiunto', name: La.title, desc: `Sei al livello ${La.lv}. Continua a viaggiare per salire ancora.` });
+    BADGES.filter(b => b.test(after) && !b.test(before))
+      .forEach(b => unlocks.push({ icon: b.icon, kicker: 'Trofeo sbloccato', name: b.label, desc: `${b.desc} +${XP.trophy} XP` }));
+    if (unlocks.length) { await wait(1300); await showUnlocks(unlocks); }
   };
 
   $('bDelete').onclick = () => {
