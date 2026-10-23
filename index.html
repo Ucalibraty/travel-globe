@@ -6,83 +6,87 @@
 <title>Travel Globe</title>
 <style>
   :root {
-    --sea: #07131f; --ink: #e9f1f5; --muted: #8fa6b4;
-    --panel: rgba(9, 24, 37, 0.9); --line: rgba(143, 166, 180, 0.25);
-    --visited: #ffb23e; --hover: #3fb6a8; --danger: #ff7a6b;
+    --bg: #000; --ink: #f2f2f7; --muted: #8e8e93;
+    --panel: #1c1c1e; --line: rgba(255, 255, 255, 0.08);
+    --accent: #ffffff; --danger: #ff453a;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--sea); color: var(--ink);
-    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
   button, input, textarea { font: inherit; color: inherit; }
   #globe { position: fixed; inset: 0; }
-  .panel { background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 14px; }
+  /* niente backdrop-filter: sopra WebGL costa molto su mobile */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
 
   /* Ricerca */
   #search { position: fixed; top: 16px; left: 16px; width: 320px; z-index: 4; }
   #search form { display: flex; gap: 6px; padding: 6px; }
   #search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; padding: 8px 10px; font-size: 16px; }
   #search input::placeholder { color: var(--muted); }
-  .btn { background: var(--visited); color: #2a1a00; border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+  .btn { background: var(--accent); color: #000; border: 0; border-radius: 12px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
   .btn:disabled { opacity: .5; cursor: default; }
-  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); }
   .btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
   #results { list-style: none; margin: 6px 0 0; padding: 4px; display: none; max-height: 45vh; overflow-y: auto; }
   #results.show { display: block; }
-  #results li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 10px; border-radius: 8px; cursor: pointer; }
-  #results li button:hover, #results li button:focus-visible { background: rgba(255,255,255,.08); outline: 0; }
+  #results li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+  #results li button:hover, #results li button:focus-visible { background: rgba(255,255,255,.06); outline: 0; }
   #results .t { font-size: 14px; font-weight: 600; }
   #results .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #results .msg { padding: 10px; font-size: 13px; color: var(--muted); }
 
   /* Pannello laterale / bottom sheet */
   #side { position: fixed; top: 76px; left: 16px; bottom: 16px; width: 320px; display: flex; flex-direction: column; z-index: 3; overflow: hidden; }
-  #sideHead { padding: 14px 16px; cursor: default; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .grab { display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 40px; height: 5px; border-radius: 3px; background: #48484a; }
+  #sideHead { padding: 14px 16px; cursor: default; }
   #sideHead h1 { margin: 0; font-size: 17px; font-weight: 600; }
   #sideHead .mini { color: var(--muted); font-size: 13px; }
-  #chev { display: none; color: var(--muted); transition: transform .2s; }
   #sideBody { padding: 0 16px 14px; overflow-y: auto; flex: 1; }
-  .big { font-size: 40px; line-height: 1; font-weight: 700; color: var(--visited); }
-  .big small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 6px; }
-  .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); margin: 12px 0 6px; overflow: hidden; }
-  .bar > i { display: block; height: 100%; width: 0; background: var(--visited); transition: width .5s ease; }
+  .big { font-size: 40px; line-height: 1; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+  .big small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+  .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin: 14px 0 8px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .5s ease; }
   .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
   .row b { color: var(--ink); }
-  #badges { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .badge { font-size: 12px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-  .badge.on { color: #2a1a00; background: var(--visited); border-color: var(--visited); font-weight: 600; }
-  h2 { font-size: 14px; margin: 18px 0 6px; }
+  #regions .row { margin-top: 8px; }
+  #badges { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); }
+  .badge.on { color: #000; background: var(--accent); font-weight: 600; }
+  h2 { font-size: 14px; margin: 20px 0 6px; }
   #empty { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.5; }
   #list { list-style: none; margin: 0; padding: 0; }
-  #list li button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 9px 2px; cursor: pointer; }
-  #list li button:hover, #list li button:focus-visible { background: rgba(255,255,255,.05); outline: 0; }
+  #list li button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 2px; cursor: pointer; }
+  #list li button:hover, #list li button:focus-visible { background: rgba(255,255,255,.04); outline: 0; }
   #list .t { font-size: 14px; font-weight: 600; }
   #list .s { font-size: 12px; color: var(--muted); }
   .credit { font-size: 11px; color: var(--muted); margin-top: 14px; }
 
   /* Form luogo */
-  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
   #overlay.show { display: flex; }
   #card { width: 100%; max-width: 400px; padding: 18px; max-height: 92vh; overflow-y: auto; }
   #card h3 { margin: 0 0 4px; font-size: 17px; }
   #card .where { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .hint { display: none; background: rgba(255,255,255,.06); border-radius: 12px; padding: 8px 10px; font-size: 13px; line-height: 1.4; margin: 0 0 4px; }
+  .link { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font-size: inherit; }
   label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  .field { width: 100%; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 16px; outline: 0; color-scheme: dark; }
-  .field:focus { border-color: var(--visited); }
+  .field { width: 100%; background: rgba(255,255,255,.06); border: 1px solid transparent; border-radius: 12px; padding: 10px; font-size: 16px; outline: 0; color-scheme: dark; }
+  .field:focus { border-color: rgba(255,255,255,.35); }
   textarea.field { min-height: 90px; resize: vertical; }
   .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   .actions .btn { flex: 1; }
 
-  #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -120px); background: var(--visited); color: #2a1a00;
-    font-weight: 600; padding: 10px 16px; border-radius: 10px; transition: transform .35s ease; max-width: calc(100vw - 32px); text-align: center; z-index: 20; }
+  #toast { position: fixed; top: 20px; left: 50%; transform: translate(-50%, -120px); background: var(--accent); color: #000;
+    font-weight: 600; padding: 10px 16px; border-radius: 12px; transition: transform .35s ease; max-width: calc(100vw - 32px); text-align: center; z-index: 20; }
   #toast.show { transform: translate(-50%, 0); }
 
   @media (max-width: 720px) {
     #search { top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: 10px; width: auto; }
-    #side { top: auto; left: 0; right: 0; bottom: 0; width: auto; border-radius: 16px 16px 0 0; max-height: 70px; transition: max-height .3s ease; padding-bottom: env(safe-area-inset-bottom); }
+    #side { top: auto; left: 0; right: 0; bottom: 0; width: auto; border: 0; border-radius: 22px 22px 0 0;
+      max-height: 86px; transition: max-height .3s ease; padding-bottom: env(safe-area-inset-bottom); }
     #side.open { max-height: 62vh; }
-    #sideHead { cursor: pointer; }
-    #chev { display: block; }
-    #side.open #chev { transform: rotate(180deg); }
+    .grab { display: block; }
+    #sideHead { cursor: pointer; padding-top: 24px; }
     .big { font-size: 32px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -102,17 +106,16 @@
 </div>
 
 <aside id="side" class="panel">
+  <span class="grab" aria-hidden="true"></span>
   <div id="sideHead">
-    <div>
-      <h1>Il mio mondo</h1>
-      <div class="mini" id="mini">0 luoghi · 0 paesi</div>
-    </div>
-    <span id="chev">▲</span>
+    <h1>Il mio mondo</h1>
+    <div class="mini" id="mini">0 luoghi · 0 paesi</div>
   </div>
   <div id="sideBody">
     <div class="big"><span id="nPlaces">0</span><small>luoghi visitati</small></div>
     <div class="bar"><i id="fill"></i></div>
     <div class="row"><span>Paesi <b id="nCountries">0</b></span><span>Mondo esplorato <b id="pct">0%</b></span><span>Continenti <b id="cont">0/6</b></span></div>
+    <div id="regions"></div>
     <div id="badges"></div>
     <h2>I miei ricordi</h2>
     <p id="empty">Cerca un luogo in alto, oppure tocca un paese sul globo, per aggiungere il tuo primo ricordo.</p>
@@ -125,6 +128,7 @@
   <div id="card" class="panel" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
     <h3 id="cardTitle">Nuovo ricordo</h3>
     <p class="where" id="where"></p>
+    <p class="hint" id="hint">Nome proposto in base al punto che hai toccato: controllalo. Se il luogo è un altro, scrivilo qui sotto oppure <button class="link" id="bOther" type="button">cercalo per nome</button>.</p>
     <label for="fName">Nome del luogo</label>
     <input id="fName" class="field" type="text" maxlength="80">
     <label for="fDate">Quando ci sei stato</label>
@@ -150,13 +154,16 @@ loadScript('https://cdnjs.cloudflare.com/ajax/libs/globe.gl/2.33.1/globe.gl.min.
   .catch(() => toast('Impossibile caricare il globo. Controlla la connessione.'));
 
 const GEO_URL = 'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson';
-const TEXTURE = 'https://unpkg.com/three-globe/example/img/earth-night.jpg';
-const BUMP = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
+// Palette minimal: oceano blu notte, terre nere, visitati grigio chiaro
+const C = {
+  ocean: '#0a0f45', oceanGlow: '#05082a', atmosphere: '#3a4bff',
+  land: '#000000', hover: '#1f2550', visited: '#d1d3db', regionDim: '#34384a',
+  pin: '#ffffff'
+};
 const WORLD_COUNTRIES = 195;
 // Livelli di zoom 0 (lontano) → 4 (molto vicino)
-const LABEL_SCALE = [0, 1, 0.65, 0.42, 0.26];   // dimensione del testo
-const MIN_GAP = [0, 6, 3.5, 2, 1.1];            // distanza minima tra etichette (gradi)
-const PINR = [0.5, 0.35, 0.22, 0.14, 0.08];     // raggio dei pin
+const LABEL_SCALE = [0, 1, 0.65, 0.42, 0.26];
+const MIN_GAP = [0, 6, 3.5, 2, 1.1];
 // [nome, lat, lng, livello]: 1 = visibile già con zoom medio, 2 = solo da vicino
 const CITIES = [
   ['Roma',41.9,12.5,1],['Parigi',48.86,2.35,1],['Londra',51.5,-0.12,1],['Madrid',40.42,-3.7,1],['Berlino',52.52,13.4,1],
@@ -189,12 +196,20 @@ const CITIES = [
 ];
 const KEY = 'travel-globe:pins';
 
+const REGION_SOURCES = {
+  ITA: {
+    url: 'https://raw.githubusercontent.com/guglielmo/geojson-italy/main/topojson/limits_IT_regions.topo.json',
+    nameProp: 'reg_name', label: 'Regioni d’Italia', countryName: 'Italia', total: 20
+  }
+};
+
 let memory = [];
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return memory; } }
 function save(arr) { memory = arr; try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {} }
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const tip = (title, sub) => `<div style="background:#1c1c1e;padding:6px 10px;border-radius:10px;color:#f2f2f7;font:13px system-ui"><b>${title}</b><br><span style="color:#8e8e93">${sub}</span></div>`;
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -209,9 +224,9 @@ const BADGES = [
   { label: '10 paesi',       test: s => s.countries >= 10 },
   { label: '3 continenti',   test: s => s.conts >= 3 },
   { label: 'Giro del mondo', test: s => s.conts >= 6 },
+  { label: 'Paese completo', test: s => s.fullCountries >= 1 },
 ];
 
-// Geometria: il punto è dentro il poligono?
 function inRing(x, y, ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -231,35 +246,61 @@ function start() {
   const cname = f => f.properties.NAME_IT || f.properties.NAME || f.properties.ADMIN;
   let pins = load();
   let countries = [], byKey = {};
-  let hover = null, visitedKeys = new Set(), editing = null, tier = -1;
+  let hover = null, visitedKeys = new Set(), visitedRegions = new Set(), editing = null, tier = -1, pinR = 0.1, lastA = 0;
+  const REGIONS = {};
+  const polyName = f => f._region ? f._name : cname(f);
+  const countryOf = f => f._region
+    ? { country: f._ckey, countryName: REGION_SOURCES[f._ckey].countryName, region: f._name }
+    : { country: key(f), countryName: cname(f) };
 
-  const globe = Globe()($('globe'))
-    .globeImageUrl(TEXTURE).bumpImageUrl(BUMP)
-    .backgroundColor('#07131f').atmosphereColor('#6ec6d8').atmosphereAltitude(0.18)
-    .polygonCapColor(f => visitedKeys.has(key(f)) ? 'rgba(255,178,62,0.45)' : f === hover ? 'rgba(63,182,168,0.55)' : 'rgba(29,74,92,0.3)')
-    .polygonSideColor(() => 'rgba(255,255,255,0.04)')
-    .polygonStrokeColor(() => 'rgba(160,200,215,0.35)')
-    .polygonAltitude(f => visitedKeys.has(key(f)) ? 0.012 : 0.005)
-    .polygonLabel(f => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui"><b>${esc(cname(f))}</b><br><span style="color:#8fa6b4">Tocca per aggiungere un ricordo</span></div>`)
-    .onPolygonHover(f => { hover = f; refreshPolygons(); document.body.style.cursor = f ? 'pointer' : 'default'; })
+  // Colore unico per tappo e lati: superfici piatte, look minimal
+  const fill = f => {
+    if (f._region) {
+      if (visitedRegions.has(f._rkey)) return C.visited;
+      if (f === hover) return C.hover;
+      return visitedKeys.has(f._ckey) ? C.regionDim : C.land;
+    }
+    if (visitedKeys.has(key(f))) return C.visited;
+    return f === hover ? C.hover : C.land;
+  };
+  const isVisited = f => f._region ? visitedRegions.has(f._rkey) : visitedKeys.has(key(f));
+
+  const globe = Globe({ rendererConfig: { antialias: true, alpha: false, powerPreference: 'high-performance' } })($('globe'))
+    // Nessuna texture: niente download da ~1 MB e meno lavoro per la GPU
+    .backgroundColor('#000000')
+    .showGraticules(false)
+    .atmosphereColor(C.atmosphere).atmosphereAltitude(0.13)
+    .polygonCapColor(fill)
+    .polygonSideColor(fill)
+    // Bordi solo tra le regioni; per i paesi niente linee (meno geometria da disegnare)
+    .polygonStrokeColor(f => f._region ? 'rgba(0,0,0,0.6)' : false)
+    .polygonAltitude(f => isVisited(f) ? 0.008 : 0.004)
+    .polygonLabel(f => tip(esc(polyName(f)), `${f._region ? esc(REGION_SOURCES[f._ckey].countryName) + ' · ' : ''}Tocca per aggiungere un ricordo`))
+    .onPolygonHover(f => { if (f === hover) return; hover = f; refreshPolygons(); document.body.style.cursor = f ? 'pointer' : 'default'; })
     .onPolygonClick((f, ev, c) => { if (c) addFromTap(f, c.lat, c.lng); })
     .polygonsTransitionDuration(0)
     .pointsData(pins).pointLat('lat').pointLng('lng')
-    .pointColor(() => '#ffb23e').pointAltitude(0.006).pointRadius(() => PINR[Math.max(tier, 0)])
+    .pointColor(() => C.pin).pointAltitude(0.01).pointRadius(() => pinR)
     .labelLat('lat').labelLng('lng').labelText('text').labelSize('size').labelColor('color')
     .labelDotRadius('dot').labelAltitude(0.012).labelResolution(1)
     .onLabelClick(l => l.pin ? openForm(l.pin, true)
       : openForm({ name: l.text, lat: l.lat, lng: l.lng, ...resolveCountry(l.lat, l.lng) }, false))
-    .pointLabel(p => `<div style="background:#091825;padding:6px 10px;border-radius:8px;border:1px solid #2a4a5c;color:#e9f1f5;font:13px system-ui"><b>${esc(p.name)}</b><br><span style="color:#8fa6b4">${esc(fmtDate(p.date))}</span></div>`)
+    .pointLabel(p => tip(esc(p.name), esc(fmtDate(p.date))))
     .onPointClick(p => openForm(p, true))
-    .ringsData([]).ringColor(() => t => `rgba(255,178,62,${1 - t})`)
+    .ringsData([]).ringColor(() => t => `rgba(255,255,255,${1 - t})`)
     .ringMaxRadius(4).ringPropagationSpeed(2.5).ringRepeatPeriod(900);
 
+  // Oceano in tinta unita, opaco (niente riflessi)
+  const mat = globe.globeMaterial();
+  mat.color.set(C.ocean);
+  if (mat.emissive) mat.emissive.set(C.oceanGlow);
+  if (mat.specular) mat.specular.set('#000000');
+  mat.shininess = 0;
+
   globe.controls().autoRotate = true;
-  globe.controls().autoRotateSpeed = 0.35;
+  globe.controls().autoRotateSpeed = 0.3;
   globe.controls().addEventListener('start', () => globe.controls().autoRotate = false);
 
-  // Etichette: i ricordi e le città compaiono avvicinandosi
   function currentTier() { const a = globe.pointOfView().altitude; return a > 1.8 ? 0 : a > 1.2 ? 1 : a > 0.7 ? 2 : a > 0.4 ? 3 : 4; }
   const near = (a, b, deg) => {
     const dx = Math.abs(a.lng - b.lng);
@@ -270,24 +311,29 @@ function start() {
     const t = currentTier();
     if (!force && t === tier) return;
     tier = t;
-    globe.pointRadius(() => PINR[t]);
     const items = [], k = LABEL_SCALE[t];
     if (t >= 1) {
-      pins.forEach(p => items.push({ lat: p.lat, lng: p.lng, text: p.name, size: 0.6 * k, color: '#ffb23e', dot: 0, pin: p }));
+      pins.forEach(p => items.push({ lat: p.lat, lng: p.lng, text: p.name, size: 0.6 * k, color: '#ffffff', dot: 0, pin: p }));
       const names = new Set(pins.map(p => p.name.toLowerCase()));
       const maxRank = t <= 2 ? 1 : 2;
       CITIES.filter(c => c[3] <= maxRank && !names.has(c[0].toLowerCase())).forEach(c => {
-        const item = { lat: c[1], lng: c[2], text: c[0], size: 0.42 * k, color: 'rgba(233,241,245,0.8)', dot: 0.1 * k };
+        const item = { lat: c[1], lng: c[2], text: c[0], size: 0.42 * k, color: 'rgba(255,255,255,0.5)', dot: 0.08 * k };
         if (!items.some(o => near(o, item, MIN_GAP[t]))) items.push(item);
       });
     }
     globe.labelsData(items);
   }
-  let labelTimer;
-  globe.controls().addEventListener('change', () => {
-    clearTimeout(labelTimer);
-    labelTimer = setTimeout(() => updateLabels(false), 150);
-  });
+  function updatePinSize(force) {
+    const a = globe.pointOfView().altitude;
+    if (!force && lastA && Math.abs(a / lastA - 1) < 0.15) return;
+    lastA = a;
+    pinR = Math.min(0.15, Math.max(0.02, 0.06 * a));
+    globe.pointRadius(() => pinR);
+  }
+  // Controllo periodico, sospeso quando la scheda non è visibile
+  setInterval(() => { if (document.hidden) return; updateLabels(false); updatePinSize(false); }, 250);
+  // Ferma la rotazione quando la scheda è in background
+  document.addEventListener('visibilitychange', () => { document.hidden ? globe.pauseAnimation() : globe.resumeAnimation(); });
   globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   const resize = () => globe.width(innerWidth).height(innerHeight);
   addEventListener('resize', resize); resize();
@@ -297,11 +343,67 @@ function start() {
     countries.forEach(f => byKey[key(f)] = f);
     globe.polygonsData(countries);
     render();
+    syncRegions();
   }).catch(() => toast('Impossibile caricare i confini dei paesi.'));
 
   function refreshPolygons(full) {
-    globe.polygonCapColor(globe.polygonCapColor());
+    globe.polygonCapColor(fill).polygonSideColor(fill);
     if (full) globe.polygonAltitude(globe.polygonAltitude());
+  }
+
+  async function ensureLib() {
+    if (window.topojson) return;
+    try { await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson-client/3.1.0/topojson-client.min.js'); }
+    catch { await loadScript('https://cdn.jsdelivr.net/npm/topojson-client@3'); }
+  }
+  async function loadRegions(cKey) {
+    const src = REGION_SOURCES[cKey];
+    if (!src || REGIONS[cKey]) return;
+    REGIONS[cKey] = { features: [] };
+    try {
+      const r = await fetch(src.url);
+      if (!r.ok) throw new Error();
+      const j = await r.json();
+      let fc = j;
+      if (j.type === 'Topology') {
+        await ensureLib();
+        fc = topojson.feature(j, j.objects.regions || j.objects[Object.keys(j.objects)[0]]);
+      }
+      const list = fc.features || [fc];
+      REGIONS[cKey].features = list.map(f => Object.assign(f, {
+        _region: true, _ckey: cKey, _name: f.properties[src.nameProp], _rkey: cKey + ':' + f.properties[src.nameProp]
+      }));
+    } catch { toast('Non riesco a caricare le regioni, riprova più tardi.'); }
+  }
+  function setPolygons() {
+    const done = new Set(Object.keys(REGIONS).filter(k => REGIONS[k].features.length));
+    globe.polygonsData(countries.filter(c => !done.has(key(c))).concat(Object.values(REGIONS).flatMap(r => r.features)));
+  }
+  function regionAt(cKey, lat, lng) {
+    const feats = REGIONS[cKey]?.features || [];
+    const polysOf = f => f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    const hit = feats.find(f => polysOf(f).some(p => inPoly(lng, lat, p)));
+    if (hit) return hit._name;
+    let best = null, bd = 0.5;
+    feats.forEach(f => polysOf(f).forEach(p => p[0].forEach(([x, y]) => {
+      const d = Math.hypot((x - lng) * Math.cos(lat * Math.PI / 180), y - lat);
+      if (d < bd) { bd = d; best = f._name; }
+    })));
+    return best;
+  }
+  async function syncRegions() {
+    const ks = [...new Set(pins.map(p => p.country).filter(k => REGION_SOURCES[k]))];
+    if (!ks.length) return;
+    await Promise.all(ks.map(loadRegions));
+    let changed = false;
+    pins.forEach(p => {
+      if (REGION_SOURCES[p.country] && !p.region) {
+        const r = regionAt(p.country, p.lat, p.lng);
+        if (r) { p.region = r; changed = true; }
+      }
+    });
+    if (changed) save(pins);
+    setPolygons(); render();
   }
 
   function fly(lat, lng) {
@@ -309,10 +411,9 @@ function start() {
     globe.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
   }
 
-  // Paese di un luogo: prima per codice, poi per posizione sulla mappa
   function resolveCountry(lat, lng, cc, countryName) {
     let f = null;
-    if (cc) { const C = cc.toUpperCase(); f = countries.find(c => c.properties.ISO_A2_EH === C || c.properties.ISO_A2 === C); }
+    if (cc) { const CC = cc.toUpperCase(); f = countries.find(c => c.properties.ISO_A2_EH === CC || c.properties.ISO_A2 === CC); }
     if (!f) f = countries.find(c => {
       const g = c.geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
       return polys.some(p => inPoly(lng, lat, p));
@@ -326,14 +427,22 @@ function start() {
     const keys = new Set(pins.map(p => p.country).filter(Boolean));
     const conts = new Set([...keys].map(k => byKey[k]?.properties.CONTINENT)
       .filter(c => c && !['Seven seas (open ocean)', 'Antarctica'].includes(c)));
-    return { places: pins.length, countries: keys.size, conts: conts.size, keys };
+    const regionStats = Object.keys(REGION_SOURCES).filter(k => pins.some(p => p.country === k)).map(k => {
+      const n = new Set(pins.filter(p => p.country === k && p.region).map(p => p.region)).size;
+      return { label: REGION_SOURCES[k].label, n, total: REGION_SOURCES[k].total };
+    });
+    const fullCountries = regionStats.filter(r => r.n >= r.total).length;
+    return { places: pins.length, countries: keys.size, conts: conts.size, keys, regionStats, fullCountries };
   }
 
   function render() {
     const s = stats();
     visitedKeys = s.keys;
+    visitedRegions = new Set(pins.filter(p => p.region).map(p => p.country + ':' + p.region));
+    $('regions').innerHTML = s.regionStats.map(r => `<div class="row"><span>${esc(r.label)}</span><b>${r.n}/${r.total}</b></div>`).join('');
     globe.pointsData(pins.slice());
     updateLabels(true);
+    updatePinSize(true);
     refreshPolygons(true);
     const pct = Math.min(100, Math.round(s.countries / WORLD_COUNTRIES * 100));
     $('nPlaces').textContent = s.places;
@@ -345,27 +454,29 @@ function start() {
     $('badges').innerHTML = BADGES.map(b => `<span class="badge ${b.test(s) ? 'on' : ''}">${b.label}</span>`).join('');
     $('empty').style.display = pins.length ? 'none' : 'block';
     const sorted = pins.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    $('list').innerHTML = sorted.map(p => `<li><button data-id="${esc(p.id)}"><div class="t">${esc(p.name)}</div><div class="s">${esc([fmtDate(p.date), p.countryName].filter(Boolean).join(' · '))}</div></button></li>`).join('');
+    $('list').innerHTML = sorted.map(p => `<li><button data-id="${esc(p.id)}"><div class="t">${esc(p.name)}</div><div class="s">${esc([fmtDate(p.date), p.region, p.countryName].filter(Boolean).join(' · '))}</div></button></li>`).join('');
     $('list').querySelectorAll('button').forEach(b => b.onclick = () => {
       const p = pins.find(x => x.id === b.dataset.id);
       if (p) { fly(p.lat, p.lng); openForm(p, true); }
     });
   }
 
-  // Form
   function openForm(data, isEdit) {
     editing = isEdit ? data : null;
     $('cardTitle').textContent = isEdit ? 'Modifica ricordo' : 'Nuovo ricordo';
-    $('where').textContent = [data.countryName, `${data.lat.toFixed(2)}°, ${data.lng.toFixed(2)}°`].filter(Boolean).join(' · ');
+    $('where').textContent = [data.region, data.countryName, `${data.lat.toFixed(2)}°, ${data.lng.toFixed(2)}°`].filter(Boolean).join(' · ');
     $('fName').value = data.name || '';
     $('fDate').value = data.date || new Date().toISOString().slice(0, 10);
     $('fNote').value = data.note || '';
     $('bDelete').style.display = isEdit ? 'block' : 'none';
     $('bDelete').textContent = 'Elimina';
+    const suggested = !!data.suggested && !isEdit;
+    $('hint').style.display = suggested ? 'block' : 'none';
     $('overlay').classList.add('show');
     openForm.data = data;
-    setTimeout(() => $('fName').focus(), 50);
+    setTimeout(() => { $('fName').focus(); if (suggested) $('fName').select(); }, 50);
   }
+  $('bOther').onclick = () => { closeForm(); $('q').focus(); };
   function closeForm() { $('overlay').classList.remove('show'); editing = null; }
 
   $('bCancel').onclick = closeForm;
@@ -383,7 +494,7 @@ function start() {
       const c = d.country !== undefined ? { country: d.country, countryName: d.countryName }
                                         : resolveCountry(d.lat, d.lng, d.cc, d.countryName);
       const pin = { id: Date.now().toString(36), name, lat: d.lat, lng: d.lng,
-        date: $('fDate').value, note: $('fNote').value.trim(), ...c };
+        date: $('fDate').value, note: $('fNote').value.trim(), ...c, ...(d.region ? { region: d.region } : {}) };
       pins.push(pin);
       globe.ringsData([pin]); setTimeout(() => globe.ringsData([]), 3000);
       toast(`${name} aggiunto ai tuoi ricordi`);
@@ -391,6 +502,7 @@ function start() {
     save(pins); closeForm(); render();
     const nb = BADGES.find(b => b.test(stats()) && !before.has(b.label));
     if (nb) setTimeout(() => toast(`Nuovo badge: ${nb.label}`), 2800);
+    syncRegions();
   };
 
   $('bDelete').onclick = () => {
@@ -399,7 +511,6 @@ function start() {
     save(pins); closeForm(); render();
   };
 
-  // Aggiunta toccando il globo
   async function addFromTap(f, lat, lng) {
     fly(lat, lng);
     toast('Cerco il luogo…');
@@ -410,10 +521,9 @@ function start() {
       name = j.name || a.city || a.town || a.village || a.county || a.state || '';
     } catch {}
     $('toast').classList.remove('show');
-    openForm({ name, lat, lng, country: key(f), countryName: cname(f) }, false);
+    openForm({ name, lat, lng, suggested: true, ...countryOf(f) }, false);
   }
 
-  // Ricerca
   $('searchForm').addEventListener('submit', async e => {
     e.preventDefault();
     const q = $('q').value.trim(); if (!q) return;
@@ -439,7 +549,6 @@ function start() {
   });
   document.addEventListener('mousedown', e => { if (!$('search').contains(e.target)) $('results').classList.remove('show'); });
 
-  // Pannello su mobile
   $('sideHead').onclick = () => { if (innerWidth <= 720) $('side').classList.toggle('open'); };
 }
 </script>
